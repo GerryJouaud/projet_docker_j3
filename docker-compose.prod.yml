@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # --- 1. Service DB (PostgreSQL) ---
+  db:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+      
+    # Variables d'environnement pour POSTGRES_DB et POSTGRES_USER
+    environment:
+      POSTGRES_DB: mon_application_db
+      POSTGRES_USER: dev_user
+      # Le mot de passe est lu depuis le secret
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      
+    # Volume pour la persistance des données
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      
+    # Configuration du healthcheck
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d mon_application_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+    # Secrets requis
+    secrets:
+      - db_password
+      
+    # Limites de ressources
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M 
+          
+    # Réseau interne
+    networks:
+      - database
+
+  # --- 2. Service Adminer (Outil de développement) ---
+  adminer: 
+    image: adminer:latest
+    container_name: adminer
+    
+    # Le profile assure qu'il ne démarre pas par défaut
+    profiles: 
+      - dev
+    
+    # Port exposé pour l'accès depuis l'hôte
+    ports: 
+      - "8080:8080"
+    
+    # Assure que le DB démarre avant Adminer
+    depends_on:
+      db:
+        condition: service_healthy # Attend que le DB soit prêt (healthy)
+    
+    # Variables de connexion par défaut
+    environment:
+      ADMINER_DEFAULT_SERVER: db 
+      ADMINER_DEFAULT_DB: mon_application_db
+
+    # Réseau
+    networks: 
+      - database
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+      depends_on:
+      - frontend:
+          condition: service_healthy
+      - backend:
+          condition: service_healthy
+    networks: 
+      - public
+      - backend
+    ports:
+      -"80:80"
+    volumes:
+      - nginx_logs:/var/log/nginx
+    healthcheck:
+      test: [""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25' # Maximum 50% d'un CPU
+          memory: 256M # Maximum 512 MB
+        reservations: # Minimum garanti
+          cpus: '0.25'
+          memory: 256M
+
+# --- Définitions globales ---
+volumes:
+  postgres_data:
+    driver: local
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+    
+networks:
+  database:
+    driver: bridge
+    internal: true
