@@ -1,8 +1,8 @@
 # The build stage is used to install dependencies and compile assets
 FROM ruby:3.2-alpine AS builder
 # Install dependencies
-# build-base for compiling native extensions
-RUN apk add --no-cache build-base postgresql-dev yaml-dev
+# build-base for compiling native extensions, postgresql-client for pg_isready
+RUN apk add --no-cache build-base postgresql-dev postgresql-client yaml-dev
 WORKDIR /app
 COPY Gemfile Gemfile.lock ./
 RUN bundle config set deployment 'true' && \
@@ -11,7 +11,7 @@ RUN bundle config set deployment 'true' && \
 
 # The production stage is used to run the application
 FROM ruby:3.2-alpine AS production
-RUN apk add --no-cache postgresql-dev yaml-dev
+RUN apk add --no-cache postgresql-dev postgresql-client yaml-dev
 WORKDIR /app
 # Copy everything from builder (gems + vendor)
 COPY --from=builder /app /app
@@ -27,7 +27,7 @@ CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0"]
 
 # The development stage is used for local development with live code reloading
 FROM ruby:3.2-alpine AS development
-RUN apk add --no-cache build-base postgresql-dev yaml-dev
+RUN apk add --no-cache build-base postgresql-dev postgresql-client yaml-dev
 WORKDIR /app
 COPY Gemfile Gemfile.lock ./
 RUN bundle install && \
