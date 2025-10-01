@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # --- 1. Service DB (PostgreSQL) ---
   db:
@@ -67,6 +65,35 @@ services:
     networks: 
       - database
 
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    #depends_on:
+    #  - frontend:
+    #      condition: service_healthy
+    #  - backend:
+    #      condition: service_healthy
+    networks: 
+      [] #[public,backend]
+    ports:
+      [80:80]
+    volumes:
+      - nginx_logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD-SHELL"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25' # Maximum 50% d'un CPU
+          memory: 256M # Maximum 512 MB
+        reservations: # Minimum garanti
+          cpus: '0.25'
+          memory: 256M
+
   backend:
     build:
       context: ./backend
@@ -85,6 +112,8 @@ services:
 # --- Définitions globales ---
 volumes:
   postgres_data:
+    driver: local
+  nginx_logs:
     driver: local
 
 secrets:
