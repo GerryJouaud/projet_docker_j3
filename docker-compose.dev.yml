@@ -67,6 +67,21 @@ services:
     networks: 
       - database
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development 
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    profiles:
+      - dev
+    secrets:
+      - db_password
+
 # --- Définitions globales ---
 volumes:
   postgres_data:

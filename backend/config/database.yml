@@ -1,0 +1,28 @@
+development:
+test:
+
+# Default database configuration for all environments
+default: &default
+  adapter: postgresql                # Use the PostgreSQL adapter
+  encoding: unicode                  # Use Unicode encoding
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>  # Connection pool size
+  username: <%= ENV["POSTGRES_USER"] %>              # Read from environment variable
+  # Password: from env var or secret file (for Docker secrets)
+  password: <%= ENV["POSTGRES_PASSWORD"] || (File.exist?(ENV["POSTGRES_PASSWORD_FILE"] || "") ? File.read(ENV["POSTGRES_PASSWORD_FILE"]).strip : nil) %>
+  host: <%= ENV["POSTGRES_HOST"] || "db" %>          # Hostname of the DB service ("db" for Docker Compose)
+  port: <%= ENV["POSTGRES_PORT"] || 5432 %>           # Default PostgreSQL port
+
+# Production environment
+production:
+  <<: *default
+  database: <%= ENV["POSTGRES_DB"] || "app_production" %>
+
+# Development environment
+development:
+  <<: *default
+  database: <%= ENV["POSTGRES_DB"] || "app_development" %>
+
+# Test environment
+test:
+  <<: *default
+  database: <%= ENV["POSTGRES_DB"] || "app_test" %>

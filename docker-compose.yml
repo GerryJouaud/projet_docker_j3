@@ -32,6 +32,32 @@ services:
     networks:
       - database
 
+  backend: 
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - database
+      - backend
+    secrets:
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+
 volumes:
   postgres_data:
     driver: local
@@ -44,3 +70,6 @@ networks:
   database:
     driver: bridge
     internal: true
+  backend:
+    driver: bridge
+    internal: false
