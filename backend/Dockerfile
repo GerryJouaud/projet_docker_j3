@@ -17,7 +17,7 @@ WORKDIR /app
 COPY --from=builder /app /app
 # Copy our app files
 COPY . .
-# Make sure bin files are executable
+# Make sure bin files are executablep
 RUN chmod +x bin/* entrypoint.sh
 ENV RAILS_ENV=production \
     PATH="/app/bin:$PATH"
