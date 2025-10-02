@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # --- 1. Service DB (PostgreSQL) ---
+  db:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_DB: mon_application_db
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d mon_application_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    secrets:
+      - db_password
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+    networks:
+      - database
+
+  # --- 2. Service Adminer ---
+  adminer: 
+    image: adminer:latest
+    container_name: adminer
+    profiles: 
+      - dev
+    ports: 
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: db 
+      ADMINER_DEFAULT_DB: mon_application_db
+    networks: 
+      - database
+
+  # --- 3. Service Frontend (Dev) ---
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    volumes:
+      - ./frontend:/app   # Montre le code local dans le conteneur pour hot-reload
+      - /app/node_modules # Évite d'écraser les modules installés dans le conteneur
+    ports:
+      - "3001:3000"       # Expose pour test local
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      db:
+        condition: service_healthy
+    profiles:
+      - dev
+    networks:
+      - public
+
+# --- Définitions globales ---
+volumes:
+  postgres_data:
+    driver: local
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+
+networks:

@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  db:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    environment:
+      POSTGRES_DB: mon_application_db
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d mon_application_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - database
+
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000   # à adapter si ton backend est sur un autre port ou nom
+    networks:
+      - public
+    ports:
+      - "3001:3000"  # expose le port pour tests locaux
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+
+volumes:
+  postgres_data:
+    driver: local
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+
+networks:
+  database:
+    driver: bridge
+    internal: true
+  public:
+    driver: bridge
+  
