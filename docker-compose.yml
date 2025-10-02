@@ -32,6 +32,19 @@ services:
       dockerfile: Dockerfile
     networks:
       - database
+      - public
+    ports:
+      - "3001:3000"  # expose le port pour tests locaux
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
 
   frontend:
     build:
@@ -54,20 +67,6 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:8000   # à adapter si ton backend est sur un autre port ou nom
-    networks:
-      - public
-    ports:
-      - "3001:3000"  # expose le port pour tests locaux
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.50'
-          memory: 512M
 
 volumes:
   postgres_data:

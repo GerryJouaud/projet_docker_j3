@@ -36,8 +36,7 @@ services:
     ports: 
       - "8080:8080"
     depends_on:
-      db:
-        condition: service_healthy # Attend que le DB soit prêt (healthy)
+      - db
     environment:
       ADMINER_DEFAULT_SERVER: db 
       ADMINER_DEFAULT_DB: mon_application_db
@@ -49,10 +48,8 @@ services:
       context: ./nginx
       dockerfile: Dockerfile
     depends_on:
-      - frontend:
-          condition: service_healthy
-      - backend:
-          condition: service_healthy
+      - frontend
+      - backend
     networks:
       - public
       - backend
@@ -82,12 +79,11 @@ services:
       - ./frontend:/app   # Montre le code local dans le conteneur pour hot-reload
       - /app/node_modules # Évite d'écraser les modules installés dans le conteneur
     ports:
-      - "3001:3000"       # Expose pour test local
+      - "3002:3000"       # Expose pour test local
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:8000
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     profiles:
       - dev
     networks:
@@ -99,8 +95,7 @@ services:
       dockerfile: Dockerfile
       target: development 
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     volumes:
       - ./backend:/app
     profiles:
